@@ -1,36 +1,53 @@
 #! /usr/bin/env python
 import numpy as np
-import PyGuide
 import argparse
-import sys
+from astropy.modeling import models, fitting
 import pyfits
 
-ccdinfo = PyGuide.CCDInfo(1,1,1,1)
+fitter = fitting.LevMarLSQFitter()
 
-def centroid(item,coords,rad=40):
-    if isinstance(item,str):
-        item = pyfits.getdata(item)
+def centroid(data, coords, rad = 30, returnFit = False):
+    if isinstance(data,str):
+        data = pyfits.getdata(data)
+        
+    # Transpose x and y b/c reasons
+    center_y,center_x = coords
 
-    satmask = np.zeros_like(item,dtype=bool)
-    satmask[coords] = True
-    cent = PyGuide.centroid(item,mask=None,satMask=satmask,xyGuess=coords,rad=rad,ccdInfo=ccdinfo)
-    xyctr = np.array(cent.xyCtr)
-    return xyctr
+    dslice = data[center_x-rad:center_x+rad,center_y-rad:center_y+rad]
+    x,y = np.mgrid[0:dslice.shape[0],0:dslice.shape[1]]
+    x -= dslice.shape[0]/2.
+    y -= dslice.shape[1]/2.
+                
+    p_init = models.Gaussian2D(np.max(dslice),0,0,rad,rad)
+    p = fitter(p_init,x,y,dslice)
+    
+    # Rescale coordinates to match data
+    p.x_mean = center_y - p.x_mean
+    p.y_mean = center_x - p.y_mean
+
+    if returnFit:
+        return p.x_mean.value, p.y_mean.value, p
+    
+    else:
+        return p.x_mean.value, p.y_mean.value
+
 
 def main():
+    parser = argparse.ArgumentParser(description='Return central coordinates of object based on initial guess.')
+    parser.add_argument('data',type=str,nargs=1,help='FITS file with object to be located')
+    parser.add_argument('coords',type=int,nargs=2,help='x y coordinates of initial guess')
+    parser.add_argument('-rad',type=int,default=30,help='Search radius [in pixels] from initial guess.')
+    parser.add_argument('--fit',action='store_true',help='Return fitting params')
 
-    parser = argparse.ArgumentParser(description='Find centroid of object given initial guess.')
-
-    parser.add_argument('data',nargs='+',help='List of filenames or numpy arrays.')
-    parser.add_argument('coords',help='Initial guess of coordinates [x, y]')
-    parser.add_argument('-r',type=int,default=40,help='Search radius (default is 40 pixels)')
-
-                                
     args = parser.parse_args()
 
-    return centroid(args.data,args.coords)
+    center = centroid(*args)
 
+    print '%s\t%f\t%f' % (args.data,center[0],center[1])
+    if args.fit:
+        print center[2]
+
+    return 0
 
 if __name__ == '__main__':
-    sys.exit(main())
-    
+    main()
