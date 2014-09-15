@@ -42,8 +42,9 @@ def main():
     parser = argparse.ArgumentParser(description='Calculate Av via observed color')
     parser.add_argument('specfile',help='TSV file with observed spectral types.')
     parser.add_argument('reffile',help='Reference file with intrinsic colors.')
-    parser.add_argument('photfile',help='File with photometry')
+    parser.add_argument('photfile',help='FITS file with photometry')
     ##reffile = ~/Software/python/colorExcess/supergiants.tsv
+    parser.add_argument('-o',metavar='outfile',dest='outfile',default=False,help="Output table (Default=photfile).")
     parser.add_argument('-R',type=float,default=3.1,help='Rv. Default=3.1')
 
     args = parser.parse_args()
@@ -57,6 +58,7 @@ def main():
 
     # Make dictionary of oID to observed color
     photDict = {oID:np.float(x-y) for oID,x,y in zip(photTable['oID'],photTable['B'],photTable['V'])}
+
     
     intrinsic = get_intrinsic(specTable,refDict)
     observed = get_observed(specTable,photDict)
@@ -73,17 +75,40 @@ def main():
     updateTable = zip(specTable['oID'],specTable['File'],specTable['SpTy'],specTable['Lum'],Av,specTable['Notes'])
     updateTable = Table(rows=updateTable,names=('oID','SpecFile','SpTy','Lum','Av','Notes'))
 
-
     # join tables
-    photTable = join(photTable,updateTable,join_type='left')
-    outFITS = '../Drout_list_ZOMG.fits'
+    photTable = join(photTable,updateTable,join_type='left',keys='oID')
+
+    # Resolve conflicts by choosing just new values
+    #  WILL OVERWRITE ANY EXISTING ONES
+    for coln in updateTable.colnames:
+        if coln+'_2' in photTable.colnames:
+            photTable.remove_column(coln+'_1')
+            photTable.rename_column(coln+'_2',coln)
+    
+    # Write out
+    if args.outfile:
+        outFITS = args.outfile
+    else:
+        outFITS = args.photfile
+    #outFITS = '../Drout_ZOMG_w_M31B.fits'#'../Drout_list_ZOMG.fits'
     outTSV = os.path.splitext(outFITS)[0] + '.tsv'
 
-    #photTable.write(outFITS)
+    photTable.write(outFITS)
+    print 'Writing to %s' % outFITS
     photTable.write(outTSV,format='ascii.tab')
+    print 'writing to %s' % outTSV
     
     
 
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
+
+
