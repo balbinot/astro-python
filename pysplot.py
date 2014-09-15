@@ -2,26 +2,53 @@
 import numpy as np
 import pyfits
 import argparse
-import ds9
+#import ds9
 import matplotlib.pyplot as plt
 
 current = 0
 
+def get_spectrum(filename,getheader=False):
+    """Read spectrum using pyfits.  Returns spectrum and header.
+    """
+    spectrum, header = pyfits.getdata(filename, 0, header=True)
+    #spectrum = spectrum[:1][0]
+    
+    if type(spectrum) is not 'list': spectrum = list(spectrum)
+    if len(spectrum) != int(header['naxis1']): spectrum = spectrum[0]
+    
+    
+    lambda1 = header['crval1']
+    lambda2 = np.round(len(spectrum)*header['cdelt1']+header['crval1'])
+
+    wave = np.arange(lambda1, lambda2, header['cdelt1'])
+    wave = wave[:len(spectrum)]
+    
+    if getheader:
+        return (wave,spectrum,header)
+
+    else:
+        return (wave, spectrum)
+  
+
+
+
+
 def onkey(event):
     global current
     global fig
-    global rows
+    global xs
+    global ys
     global header
     global keys
     
     if event.key == 'right':
-        if current >= len(rows)-1:
+        if current >= len(xs)-1:
             return
         fig.clf()
         current = current + 1
-        plt.plot(rows[current])
+        plt.plot(xs[current],ys[current])
         if keys:
-            plt.title(header[keys[current]])
+            plt.title(keys[current])
         fig.canvas.draw()
         #print current
 
@@ -30,9 +57,9 @@ def onkey(event):
             return
         fig.clf()
         current = current - 1
-        plt.plot(rows[current])
+        plt.plot(xs[current],ys[current])
         if keys:
-            plt.title(header[keys[current]])
+            plt.title(keys[current])
         fig.canvas.draw()
         #print current
 
@@ -43,21 +70,24 @@ def onkey(event):
 
 parser = argparse.ArgumentParser(description='Python version of splot.  [Left] and [Right] to scroll through spectra.  [Q] to quit.')
     
-parser.add_argument('file',metavar='file',help='File with 1D spectra.')
+parser.add_argument('filelist',nargs='+',help='File(s) with 1D spectra.')
 
 args = parser.parse_args()
 
-f = pyfits.open(args.file)
+keys = args.filelist
 
-data = f[0].data
-header = f[0].header
+data = [get_spectrum(f) for f in keys]
 
-keys = [x for x in header.keys() if 'APID' in x]
+xs, ys = zip(*data)
 
-if data.ndim <= 1:  # 1D array
-    rows = data
-    fig = plt.figure()
-    cid = fig.canvas.mpl_connect('key_press_event', onkey)
+fig = plt.figure()
+cid = fig.canvas.mpl_connect('key_press_event', onkey)
+plt.plot(xs[0],ys[0])
+plt.show()
+
+'''
+fig = plt.figure()
+cid = fig.canvas.mpl_connect('key_press_event', onkey)
     plt.plot(data)
     plt.show()
     exit()
@@ -72,4 +102,4 @@ plt.plot(rows[0])
 if keys:
     plt.title(header[keys[0]])
 plt.show()
-
+'''
