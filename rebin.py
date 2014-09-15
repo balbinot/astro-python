@@ -5,7 +5,10 @@ import numpy as np
 import os
 
 def rebin(filename,func,b):
-    data = pyfits.getdata(filename)
+    if isinstance(filename,str):
+        data = pyfits.getdata(filename)
+    else:
+        data = filename
 
     # num of rows and cols
     M = data.shape[0]

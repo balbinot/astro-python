@@ -41,6 +41,8 @@ def centroid_airy(data, coords, rad = 30, returnFit = False):
     # Transpose x and y b/c reasons
     center_y,center_x = coords
     dslice = data[center_x-rad:center_x+rad,center_y-rad:center_y+rad]
+
+    # Construct a grid of coordinates
     x,y = np.mgrid[0:dslice.shape[0],0:dslice.shape[1]]
     x -= dslice.shape[0]/2.
     y -= dslice.shape[1]/2.
@@ -49,7 +51,7 @@ def centroid_airy(data, coords, rad = 30, returnFit = False):
     p = fitter(p_init,x,y,dslice)
 
     # Rescale coordinates to match data
-    px = center_y + p.y_0   # ?
+    px = center_y + p.y_0
     py = center_x + p.x_0
 
     if returnFit:

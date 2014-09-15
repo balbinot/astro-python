@@ -1,11 +1,11 @@
 #! /usr/bin/env python
 import pyfits
-from scipy.ndimage.interpolation import shi
+from scipy.ndimage.interpolation import shift
+from centroid import centroid
+import argparse
 
-from centroid import centroidport argparse
-im
 def align(filename,coords,rad):
-    
+    pass
 
 
 def main():
