@@ -3,7 +3,7 @@
 import argparse
 
 
-def ext_correction(Av,Rv=3.1):
+def ext_correction(Av,Rv=3.1,filter = None):
     # all values from Cardelli 1989
     filters = ['U','B','V','R','I','J','H','K','L']
     x = [2.78,2.27,1.82,1.43,1.11,0.80,0.63,0.46,0.29]
@@ -13,7 +13,14 @@ def ext_correction(Av,Rv=3.1):
     ext_law = [a+(b/Rv) for a,b in zip(ax,bx)]
     A = [float(Av)*ext for ext in ext_law]
 
-    return dict(zip(filters,A))
+    dict_av = dict(zip(filters,A))
+    if filter:
+        if filter in dict_av:
+            return dict_av[filter]
+        else:
+            return 0.0
+    else:
+        return dict(zip(filters,A))
 
 
 
