@@ -51,6 +51,7 @@ class Plotter(object):
         plt.imshow(data,origin='lower',interpolation='none')
         plt.title(self.filelist[self.current])
         self.fig.canvas.draw()
+        return self.fig
 
     def displaytext(self,text,x=0.05,y=0.05,remove=None):
         if remove:

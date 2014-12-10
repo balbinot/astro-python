@@ -29,7 +29,14 @@ def get_flux(tablecol,name_ext = ''):
     '''Returns [F_Jy,F_lambda,lam_F_lam]'''
     name = tablecol.name
 
-    Jy_col = [np.power(10.0,-val/2.5)*zp[name] if val else np.nan for val in tablecol.data]
+    data = [x for x in tablecol.data]
+    for idx,val in enumerate(data):
+        try:
+            data[idx] = np.float(val)
+        except:
+            data[idx] = None
+
+    Jy_col = [np.power(10.0,-val/2.5)*zp[name] if val else np.nan for val in data]
     #Jy_col = [np.float(x) if x else np.nan for x in Jy_col]
    
     # convert to F_lambda, erg/s/cm^2/micron

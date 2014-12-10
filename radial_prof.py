@@ -135,7 +135,9 @@ def radialAllPix(data, center=None):
     r = np.hypot(x - center[0], y - center[1])
     yarr = data.flatten()
     xarr = r.flatten()
-
+    
+    return xarr,yarr
+    '''
     radDict = {}
     for x,y in zip(xarr,yarr):
         if x in radDict:
@@ -150,7 +152,7 @@ def radialAllPix(data, center=None):
         yrad.append(np.mean(v))
         
     return xrad,yrad
-
+    #'''
 
 def radialAverage(image, center=None, stddev=False, returnAz=False, return_naz=False, 
                   binsize=1.0, weights=None, steps=False, interpnan=False, left=None, right=None,

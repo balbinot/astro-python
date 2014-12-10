@@ -51,7 +51,12 @@ def main():
 
     specTable = Table.read(args.specfile,format='ascii.tab')
     refTable = Table.read(args.reffile,format='ascii.tab')
-    photTable = Table.read(args.photfile)
+
+
+    if os.path.splitext(args.photfile)[1] == '.tsv':
+        photTable = Table.read(args.photfile,format='ascii.tab')
+    else:
+        photTable = Table.read(args.photfile)
 
     # Make dictionary of spectral type to color
     refDict = {MK[0:2]:np.float(color) for MK,color in zip(refTable['MK'],refTable['B-V']) if MK}
@@ -64,6 +69,7 @@ def main():
     observed = get_observed(specTable,photDict)
 
     Av = get_Av(observed,intrinsic,args.R)
+
     #for x,y,z in zip(observed,intrinsic,Av,photTable):
     #    print x,y,z
     #exit()
@@ -77,6 +83,9 @@ def main():
 
     # join tables
     photTable = join(photTable,updateTable,join_type='left',keys='oID')
+    print len(photTable)
+    print photTable.colnames
+    exit()
 
     # Resolve conflicts by choosing just new values
     #  WILL OVERWRITE ANY EXISTING ONES
