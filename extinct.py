@@ -84,8 +84,8 @@ def main():
     # join tables
     photTable = join(photTable,updateTable,join_type='left',keys='oID')
     print len(photTable)
-    print photTable.colnames
-    exit()
+    #print photTable.colnames
+    #exit()
 
     # Resolve conflicts by choosing just new values
     #  WILL OVERWRITE ANY EXISTING ONES
@@ -93,7 +93,8 @@ def main():
         if coln+'_2' in photTable.colnames:
             photTable.remove_column(coln+'_1')
             photTable.rename_column(coln+'_2',coln)
-    
+
+
     # Write out
     if args.outfile:
         outFITS = args.outfile
@@ -101,6 +102,7 @@ def main():
         outFITS = args.photfile
     #outFITS = '../Drout_ZOMG_w_M31B.fits'#'../Drout_list_ZOMG.fits'
     outTSV = os.path.splitext(outFITS)[0] + '.tsv'
+    
 
     photTable.write(outFITS)
     print 'Writing to %s' % outFITS
