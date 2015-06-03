@@ -29,7 +29,25 @@ def get_observed(specTable,photDict):
         observed.append(photDict.get(row['oID']))
 
     return observed
-    
+
+
+def isValid(cell):
+    try:
+        cell = float(cell)
+    except:
+        return False
+    if cell == 0:
+        return True
+    if not cell:
+        return False
+    if cell == '':
+        return False
+    if cell > 80:
+        return False
+    if cell == '--':
+        return False
+
+    return True
 
 def get_Av(observed,intrinsic,R=3.1):
     EBV = [BV-BV0 if BV and BV0 else None for BV,BV0 in zip(observed,intrinsic) ]
@@ -45,7 +63,7 @@ def main():
     parser.add_argument('photfile',help='FITS file with photometry')
     ##reffile = ~/Software/python/colorExcess/supergiants.tsv
     parser.add_argument('-o',metavar='outfile',dest='outfile',default=False,help="Output table (Default=photfile).")
-    parser.add_argument('-R',type=float,default=3.1,help='Rv. Default=3.1')
+    parser.add_argument('-R',type=float,default=3.2,help='Rv. Default=3.2')
 
     args = parser.parse_args()
 
@@ -62,14 +80,20 @@ def main():
     refDict = {MK[0:2]:np.float(color) for MK,color in zip(refTable['MK'],refTable['B-V']) if MK}
 
     # Make dictionary of oID to observed color
-    photDict = {oID:np.float(x-y) for oID,x,y in zip(photTable['oID'],photTable['B'],photTable['V'])}
-
+    BV = [float(x)-float(y) if isValid(x) and isValid(y) else None for x,y in zip(photTable['B'],photTable['V'])]
+    photDict = {oID:color for oID,color in zip(photTable['oID'],BV)}
     
     intrinsic = get_intrinsic(specTable,refDict)
     observed = get_observed(specTable,photDict)
 
     Av = get_Av(observed,intrinsic,args.R)
-
+    for x in Av:
+        if x <= 0.0:
+            print '--'
+        else:
+            print x
+    exit()
+    
     #for x,y,z in zip(observed,intrinsic,Av,photTable):
     #    print x,y,z
     #exit()
@@ -83,7 +107,7 @@ def main():
 
     # join tables
     photTable = join(photTable,updateTable,join_type='left',keys='oID')
-    print len(photTable)
+    #print len(photTable)
     #print photTable.colnames
     #exit()
 
@@ -104,10 +128,15 @@ def main():
     outTSV = os.path.splitext(outFITS)[0] + '.tsv'
     
 
-    photTable.write(outFITS)
-    print 'Writing to %s' % outFITS
-    photTable.write(outTSV,format='ascii.tab')
-    print 'writing to %s' % outTSV
+    #photTable.write(outFITS)
+    ##print 'Writing to %s' % outFITS
+    #photTable.write(outTSV,format='ascii.tab')
+    for x in photTable['Av']:
+        if x <= 0.0:
+            print '--'
+        else:
+            print x
+    ###print 'writing to %s' % outTSV
     
     
 

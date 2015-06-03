@@ -1,9 +1,33 @@
 #! /usr/bin/env python
-# 9/8/14
+# 4/28/15
 import argparse
+from collections import OrderedDict
+import numpy as np
 
+def ext_correction_multiple(Av,Rv=3.2):
+    # all values from Cardelli 1989
+    filters = ['U','B','V','R','I','J','H','K','L']
+    x = [2.78,2.27,1.82,1.43,1.11,0.80,0.63,0.46,0.29]
+    ax = [0.9530,0.9982,1.0000,0.8686,0.6800,0.4008,0.2693,0.1615,0.0800]
+    bx = [1.9090,1.0495,0.0,-0.3660,-0.6239,-0.3679,-0.2473,-0.1483,-0.0734]
 
-def ext_correction(Av,Rv=3.1,filter = None):
+    ext_law = [a+(b/Rv) for a,b in zip(ax,bx)]
+    ext_dicts = []
+
+    for A in list(Av):
+        if (A or A != 0) and (A != '--'):
+            al = [float(A)*ext for ext in ext_law]
+        else:
+            al = [None for ext in ext_law]
+            
+        dict_av = OrderedDict(zip(filters,al))
+        ext_dicts.append(dict_av)
+
+    return ext_dicts
+    
+    
+
+def ext_correction(Av,Rv=3.2,filter = None):
     # all values from Cardelli 1989
     filters = ['U','B','V','R','I','J','H','K','L']
     x = [2.78,2.27,1.82,1.43,1.11,0.80,0.63,0.46,0.29]
