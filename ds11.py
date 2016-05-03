@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-#version 04/27/2016
+#version 04/28/2016
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.table import Table,hstack,Column
@@ -240,14 +240,30 @@ class ds11(object):
 
         
         plt.show()
+
+    def _get_ds9(self,d=None):
+        if not d:
+            try:
+                d = DS9('astro')
+            except:
+                d = DS9()
+            return d
+
+        if isinstance(d,DS9):
+            return d
+
+        if isinstance(d,str):
+            try:
+                d = DS9(d)
+            except:
+                d = DS9()
+            return d
+
+
+
+    def show_ds9(self,regions=None,d=None):
+        d = self._get_ds9(d)
         
-
-    def show_ds9(self,regions=None):
-        try:
-            d = DS9('astro')
-        except:
-            d = DS9()
-
         if self.filename:
             d.set("file %s" % filename)
         elif (self.data is not None) and (self.header is not None):
@@ -269,6 +285,9 @@ class ds11(object):
             else:
                 x,y = first_ap.positions[0]
             d.set('pan to %i %i image' % (int(x),int(y)))
+        
+            
+
 
     @staticmethod
     def is_pix_coord(coord):
