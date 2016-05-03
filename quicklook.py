@@ -21,7 +21,7 @@ def plot_spectrum(spectrum, wave, header, color='k',title=None,xlim=None,ylim=No
     
   plt.xlabel('$\lambda$ ($\AA$)', fontsize=30)
   plt.tick_params(axis='x', which='both', labelsize=22)
-  plt.tick_params(axis='y', which='both', left='off',right='off', labelleft='off')
+  plt.tick_params(axis='y', which='both')#, left='off',right='off', labelleft='off')
 
   #plt.legend(frameon=False, loc='upper right', markerscale=None, fontsize=22)
   plt.gca().xaxis.labelpad = 10

@@ -20,6 +20,13 @@ def get(SpTy, temp = None):
         idx = np.where(table['MK'] == MK)
         return np.float(table['BC'][idx])
 
+    for idx,x in enumerate(table['MK']):
+        if not x:
+            continue
+        if len(x) < 2:
+            table['MK'][idx] = x+'0'
+    
+
     tM,tK = zip(*[(x[0],x[1]) if x else (None,None) for x in table['MK']])
 
     if MK[0] not in tM:

@@ -1,8 +1,29 @@
 #! /usr/bin/env python
-# 4/28/15
+# 05/03/16
 import argparse
 from collections import OrderedDict
 import numpy as np
+from mag2flux import get_wave
+
+
+def ext_correction_indebetouw(Ak,filter = None):
+    #indebetouw 2005
+    filters = ['J','H','K','3.6','4.5',
+               '5.8','8.0','W1','W2','W3','W4',
+               'MIPS24','MSXA','MSXB1','MSXB2','MSXC','MSXD','MSXE',
+               'IRAS12', 'IRAS25', 'IRAS60', 'IRAS100',
+               'AKARIS9W', 'AKARIN60', 'AKARIWIDES']
+    waves = [get_wave(x) for x in filters]
+    l_Alam_Ak = 0.61 - 2.22*(np.log10(waves)) + 1.21*(np.log10(waves)**2)
+    Alam_Ak = 10.0**l_Alam_Ak
+    Alam = Alam_Ak * np.float(Ak)
+    Alam[np.where(Alam < 0)] = np.min(np.abs(Alam))  # smallest number
+    
+    dictak = OrderedDict(zip(filters,Alam))
+    if filter:
+        return dictak[filter]
+    else:
+        return dictak
 
 def ext_correction_multiple(Av,Rv=3.2):
     # all values from Cardelli 1989
@@ -15,6 +36,7 @@ def ext_correction_multiple(Av,Rv=3.2):
     ext_dicts = []
 
     for A in list(Av):
+        print A
         if (A or A != 0) and (A != '--'):
             al = [float(A)*ext for ext in ext_law]
         else:
