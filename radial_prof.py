@@ -9,7 +9,7 @@ def radialprofile(data, center=None, binsize=1, interpnan = True):
     if isinstance(data, str):
         data = pyfits.getdata(data)
     y, x = np.indices(data.shape)
-    if not center:
+    if center is None:
         center = np.array([(x.max()-x.min())/2.0, (y.max()-y.min())/2.0])
     r = np.hypot(x - center[0], y - center[1])
 
@@ -125,16 +125,23 @@ def radialInt(data,center=None):
     return radialp
     
     
-def radialAllPix(data, center=None):
+def radialAllPix(data, center=None,sort=False):
     # get indices of data
     if isinstance(data, str):
         data = pyfits.getdata(data)
     y, x = np.indices(data.shape)
-    if not center:
+    if center is None:
         center = np.array([(x.max()-x.min())/2.0, (y.max()-y.min())/2.0])
     r = np.hypot(x - center[0], y - center[1])
     yarr = data.flatten()
     xarr = r.flatten()
+
+    if sort:
+        tup = zip(xarr,yarr)
+        tup.sort(key=lambda x:x[0])
+        xarr, yarr = zip(*tup)
+        xarr = np.array(xarr)
+        yarr = np.array(yarr)
     
     return xarr,yarr
     '''

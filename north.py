@@ -4,9 +4,10 @@ from astropy.io import fits
 import numpy as np
 import pywcsgrid2
 import matplotlib.pyplot as plt
+from scipy import ndimage
 
 class North(object):
-    def __init__(self,filename,xlim=None,ylim=None,fig=None,vmin=None,vmax=None,twin=None,cmap=None,right=False,aspect='auto',gs=None):
+    def __init__(self,filename,xlim=None,ylim=None,fig=None,vmin=None,vmax=None,twin=None,cmap=None,right=False,aspect='auto',gs=None,angle=0.0,interp=None,shift=None):
         self.filename = filename
         self.fig = fig
         self.data,self.h0 = fits.getdata(self.filename,header=True)
@@ -20,6 +21,9 @@ class North(object):
         self.right = right
         self.aspect = aspect
         self.gs = gs
+        self.angle = angle
+        self.interp = interp
+        self.shift = shift
 
         self._rotate()
         
@@ -37,12 +41,33 @@ class North(object):
 
         # Construct header in equatorial frame
         self.h1 = self.h0.copy()
-        self.h1.update(
-            cd1_1=-np.hypot(self.h0["CD1_1"], self.h0["CD1_2"]), 
-            cd1_2=0.0, 
-            cd2_1=0.0, 
-            cd2_2=np.hypot(self.h0["CD2_1"], self.h0["CD2_2"]), 
-            orientat=0.0)
+        try:
+            self.h1.update(
+                cd1_1=-np.hypot(self.h0["CD1_1"], self.h0["CD1_2"]), 
+                cd1_2=0.0, 
+                cd2_1=0.0, 
+                cd2_2=np.hypot(self.h0["CD2_1"], self.h0["CD2_2"]), 
+                orientat=0.0)
+        except KeyError:
+            self.h1.update(
+                cd1_1=-np.hypot(self.h0["CDELT1"], self.h0["CDELT2"]), 
+                cd1_2=0.0, 
+                cd2_1=0.0, 
+                cd2_2=np.hypot(self.h0["CDELT1"], self.h0["CDELT2"]), 
+                orientat=0.0)            
+
+        ### CURRENTLY BROKEN
+        if self.angle == 90:
+            print 'flipped'
+            self.h1.update(
+                cd1_1=np.hypot(self.h0["CD1_1"], self.h0["CD1_2"]),
+                cd1_2=0.0,
+                cd2_1=0.0,
+                cd2_2=np.hypot(self.h0["CD2_1"], self.h0["CD2_2"]),
+                orientat=0.0)
+
+        if self.shift:
+            self.data = ndimage.interpolation.shift(self.data,self.shift)
 
     def _make_axis(self):
         if self.fig is None:
@@ -65,11 +90,17 @@ class North(object):
                 gs = 122
             self.ax = pywcsgrid2.subplot(gs, wcs=self.h1, aspect=self.aspect,adjustable='box')
             
+        elif self.gs:
+            self.ax = pywcsgrid2.subplot(self.gs, wcs=self.h1, aspect=self.aspect,adjustable='box')
         else:
             self.ax = pywcsgrid2.axes(wcs=self.h1, aspect=self.aspect) #aspect=1
         self.ax.set_xlim(-self.nx/4, 5*self.nx/4)
         self.ax.set_ylim(-self.ny/4, 5*self.ny/4)
-        self.ax[self.h0].imshow_affine(self.data,origin='lower',vmin=self.vmin,vmax=self.vmax,cmap=self.cmap)
+
+        if self.interp is None:
+            self.im = self.ax[self.h0].imshow_affine(self.data,origin='lower',vmin=self.vmin,vmax=self.vmax,cmap=self.cmap)
+        else:
+            self.im = self.ax[self.h0].imshow(self.data,origin='lower',vmin=self.vmin,vmax=self.vmax,cmap=self.cmap,interpolation=self.interp)
 
         if self.xlim:
             self.ax.set_xlim(self.xlim)
@@ -92,6 +123,7 @@ class North(object):
         else:
             self.ax.set_aspect('equal', adjustable='box')
 
+            
     def get_aspect(self):
         return self.ax.get_data_ratio()
 
@@ -103,5 +135,31 @@ class North(object):
         else:
             return width, height
 
+    def get_ax_lims(self):
+        xlim = self.ax.get_xlim()
+        ylim = self.ax.get_ylim()
+        wcs = WCS(self.h1)
+        bl = wcs.wcs_pix2world([[xlim[0],ylim[0]]],1)
+        tr = wcs.wcs_pix2world([[xlim[1],ylim[1]]],1)
+        br = wcs.wcs_pix2world([[xlim[1],ylim[0]]],1)
+        tl = wcs.wcs_pix2world([[xlim[0],ylim[1]]],1)
+        
+        return xlim,ylim,(bl,br,tl,tr)
+
+    def transform_lims(self,wcs):
+        _,_,coords = self.get_ax_lims()
+        print coords
+        bl,br,tl,tr = coords
+        bl1 = wcs.wcs_world2pix(bl,1)[0]
+        tr1 = wcs.wcs_world2pix(tr,1)[0]
+        print bl1, tr1
+        xlim = [bl1[0],tr1[0]]
+        ylim = [bl1[1],tr1[1]]
+        return np.array(xlim),np.array(ylim)
+
+
+    def tight_layout(self):
+        plt.tight_layout()
+    
     def show(self):
         plt.show()

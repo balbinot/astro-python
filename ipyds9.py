@@ -1,4 +1,7 @@
 #! /usr/bin/env python
+###
+## launched from 'source activate irafenv'
+
 from pyds9 import DS9
 import argparse
 import numpy as np
@@ -17,6 +20,7 @@ import os
 from astropy.modeling import models,fitting
 import warnings
 import re
+from utils import RadProf
 
 C_COLMAP = OrderedDict([('XINIT','xi'),('YINIT','yi'),('XCENTER','xc'),('YCENTER','yc'),('XSHIFT','xs'),('YSHIFT','ys'),('CERROR','err')])
 P_COLMAP = OrderedDict([('Column','xi'),('Line','yi'),('PA','pa'),('Ellip','ellip'),('FWHM','hwhm'),('GFWHM','ghwhm'),('MFWHM','mhwhm')])
@@ -145,7 +149,10 @@ class iDS9(DS9):
         self.parser.print_help()
         loop = True
         last_command = None
-                
+
+        #radprofiler
+        r = RadProf(self.tempdatafile.name)
+        
         while loop:
             query = self.get('imexam key coordinate')
             key,x,y = query.split()
@@ -176,21 +183,29 @@ class iDS9(DS9):
                 tbl = qphot_iraf(self.tempdatafile.name,coords=self.tempcoofile.name,radius=self.radius,arad=self.arad,irad=self.irad,orad=self.orad)
                 
             if args.r:
-                #centroid first
-                self._write_coord_file(x,y)
-                ctbl = centroid_iraf(self.tempdatafile.name,coords=self.tempcoofile.name,radius=self.radius)
-                ###xc,yc = int(ctbl['xc'][0]), int(ctbl['yc'][0])
-                xc,yc = ctbl['xc'][0], ctbl['yc'][0]
+                prof,tbl = r.profile((x,y))
+                if last_command == 'r':
+                    tbl.pprint(show_name=False,show_unit=False)
+                else:
+                    tbl.pprint()
+
+                prof[0].plot(self.pxscale)
+
+                
+                
+                ###centroid first
+                ###self._write_coord_file(x,y)
+                ###ctbl = centroid_iraf(self.tempdatafile.name,coords=self.tempcoofile.name,radius=self.radius)
+                ###xc,yc = ctbl['xc'][0], ctbl['yc'][0]
                 #tbl = radialForTerry(self.data,(xc,yc),self.radius)
                 #tbl = radprof(self.data,(xc,yc),radius=self.radius,pxscale=self.pxscale)
                 #####tbl = radial_profile_allpix(self.data,(xc,yc),self.radius,pxscale=self.pxscale)
                 #get psfmeasure for moffat fit
-                ptbl = psfmeasure(self.tempdatafile.name,coords=self.tempcoofile.name,radius=self.radius,size='all',pxscale=self.pxscale)
-                ptbl.pprint()
+                ###ptbl = psfmeasure(self.tempdatafile.name,coords=self.tempcoofile.name,radius=self.radius,size='all',pxscale=self.pxscale)
+                ###ptbl.pprint()
 
-
-                ptbl = radprof_iraf(self.tempdatafile.name,coords=self.tempcoofile.name,radius=self.radius,verbose=True,test=True,plotfile=self.tempradfile.name,pxscale=self.pxscale)
-                tbl = radial_profile_allpix2(self.data,(xc,yc),self.radius,pxscale=self.pxscale)
+                #ptbl = radprof_iraf(self.tempdatafile.name,coords=self.tempcoofile.name,radius=self.radius,verbose=True,test=True,plotfile=self.tempradfile.name,pxscale=self.pxscale)
+                ####tbl = radial_profile_allpix2(self.data,(xc,yc),self.radius,pxscale=self.pxscale)
                 #data = '\n'.join(['%f %f' % (x,y) for x,y in zip(tbl['radius'],tbl['counts'])])
                 #self.set('plot new "Radial Profile" scatter')
 
@@ -402,16 +417,14 @@ def radprof_iraf(image,coords,radius,step=0.1,output='STDOUT',plotfile=None,verb
             for fwhmcol in tbl.colnames[-2:]:
                 tbl.add_column(Column(tbl[fwhmcol]*pxscale,name='%s_s'%fwhmcol,unit=u.arcsec,format='%.3f'),tbl.index_column(fwhmcol)+1)
 
-        tbl.pprint()
-        exit()
         gki = iraf.gkidecode(plotfile,Stdout=1,verbose=True)
         gki = '\n'.join(gki)
         xr,yr,xf,yf = extract_gkidata(gki)
-        plt.scatter(xr,yr)
-        plt.plot(xf,yf)
-        plt.show()
-        exit()
-        return
+        #plt.scatter(xr,yr)
+        #plt.plot(xf,yf)
+        #plt.show()
+
+        return tbl,xr,yr,xf,yf
 
     results = iraf.apphot.radprof(image,radius=radius,step=step,coords=coords,output=output,verbose=verbose,verify=False,interactive=False,Stdout=1)
 

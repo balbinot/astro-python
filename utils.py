@@ -200,7 +200,7 @@ class RadProf(object):
             profs.append(datum)
 
         table = vstack([p.tab for p in profs])
-        table.pprint()
+        #table.pprint()
         if table:
             return profs,table
         else:
@@ -264,12 +264,32 @@ class RadProf(object):
 
         return p
 
-
 class Profile(namedtuple('Profile',RadProf.T_COLMAP+['rad','int','radf','intf','tab'])):
     __slots__ = ()
     def __repr__(self):
         #rep = ','.join(['%s=%.1f' % (x,self.__dict__[x]) for x in RadProf.T_COLMAP])
         return 'Profile(xi=%.2f,yi=%.2f,fwhm=%r)' % (self.xi,self.yi,self.fwhm)
+
+    def plot(self,pxscale=None):
+        plt.scatter(self.rad,self.int)
+        plt.xlabel('Radius [pix]')
+        plt.ylabel('Counts')
+
+        if self.radf is not None:
+            plt.plot(self.radf,self.intf,'r',lw=2,zorder=2)
+        #plt.plot(ptbl['radius'],mof(ptbl['radius']),'r')
+        #plt.plot(ptbl['radius'],ptbl['intensity'],'k')
+    
+        if pxscale:
+            ax1 = plt.gca()
+            ax2 = ax1.twiny()
+            ax2Ticks = [tick*pxscale for tick in ax1.get_xticks()]
+            ax2Labels = ['%.2f'%tick.value for tick in ax2Ticks]
+            ax2.set_xticks(ax1.get_xticks())
+            ax2.set_xbound(ax1.get_xbound())
+            ax2.set_xticklabels(ax2Labels)
+            ax2.set_xlabel('Radius [arcsec]')
+        plt.show()
 
     
 

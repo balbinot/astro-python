@@ -1,11 +1,13 @@
 #! /usr/bin/env python
-#version 04/27/2016
+#version 12/19/2016
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.table import Table,hstack,Column
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-from photutils.morphology import centroid_com,centroid_1dg,centroid_2dg,cutout_footprint,data_properties
+from photutils.centroids import centroid_com,centroid_1dg,centroid_2dg
+from photutils.morphology import data_properties
+from photutils.utils import cutout_footprint
 from photutils import properties_table, CircularAperture, CircularAnnulus, aperture_photometry, SkyCircularAnnulus,SkyCircularAperture
 import numpy as np
 
@@ -50,7 +52,7 @@ def wcs2pix(coord,wcs):
 def centroid(data,coord,box_size=30,wcs=None):
     if is_pix_coord(coord):
         coord = [np.float(coord[0]),np.float(coord[1])]
-        print 'Centroiding at (%.2f,%.2f)' % (coord[0],coord[1])
+        print 'Centroiding at (%.2f,%.2f)' % (coord[0],coord[1]),
     elif is_sky_coord(coord):
         if wcs:
             try:
@@ -66,18 +68,20 @@ def centroid(data,coord,box_size=30,wcs=None):
 
 
     ## make cutout mask
-    print coord
+    #print coord
     _,_,_,slices = cutout_footprint(data,coord,box_size=box_size)
     mask = np.ones_like(data,dtype=bool)
     mask[slices] = False    
     xc,yc = centroid_2dg(data,mask=mask)
-    print xc,yc
+    print ' -> (%f, %f)' % (xc,yc),
 
     if wcs:
         ra,dec = pix2wcs([xc,yc],wcs)
+        print ' [%s, %s]' % (ra,dec)
         tbl = Table([[xc],[yc],[ra],[dec]],names=['xcen','ycen','ra','dec'])
         return tbl
     else:
+        print
         tbl = Table([[xc],[yc]],names=['xcen','ycen'])
         return tbl
 
@@ -141,7 +145,7 @@ def qphot(data,coord,rad,skyradin,skyradout,wcs=None,calfctr=None,skycoord=None,
         sky_err = phot_table['aperture_sum_err_sky']
         src_var = src_err/phot_table['residual_aperture_sum']
         sky_var = sky_err/sky_sum
-        color_err = 0.20 # 10 percent photoerr
+        color_err = 0. # 10 percent photoerr
         color_var = color_err * phot_table['residual_aperture_sum']
         phot_table['residual_aperture_err'] = np.sqrt(src_var**2+sky_var**2+color_var**2)
     
@@ -190,6 +194,6 @@ def qphot(data,coord,rad,skyradin,skyradout,wcs=None,calfctr=None,skycoord=None,
             phot_table.add_column(Column(fluxerr,name='ap_err',unit=unit))
 
     if filter:
-        phot_table['filter'] = filter
+        phot_table['filter'] = str(filter)
 
     return phot_table

@@ -8,7 +8,7 @@ from mag2flux import get_wave
 
 def ext_correction_indebetouw(Ak,filter = None):
     #indebetouw 2005
-    filters = ['J','H','K','3.6','4.5',
+    filters = ['R','I','Rc','Ic','J','H','K','3.6','4.5',
                '5.8','8.0','W1','W2','W3','W4',
                'MIPS24','MSXA','MSXB1','MSXB2','MSXC','MSXD','MSXE',
                'IRAS12', 'IRAS25', 'IRAS60', 'IRAS100',
@@ -27,10 +27,10 @@ def ext_correction_indebetouw(Ak,filter = None):
 
 def ext_correction_multiple(Av,Rv=3.2):
     # all values from Cardelli 1989
-    filters = ['U','B','V','R','I','J','H','K','L']
-    x = [2.78,2.27,1.82,1.43,1.11,0.80,0.63,0.46,0.29]
-    ax = [0.9530,0.9982,1.0000,0.8686,0.6800,0.4008,0.2693,0.1615,0.0800]
-    bx = [1.9090,1.0495,0.0,-0.3660,-0.6239,-0.3679,-0.2473,-0.1483,-0.0734]
+    filters = ['U','B','V','R','Rc','I','Ic','J','H','K','L']
+    x = [2.78,2.27,1.82,1.43,1.43,1.11,1.11,0.80,0.63,0.46,0.29]
+    ax = [0.9530,0.9982,1.0000,0.8686,0.8686,0.6800,0.6800,0.4008,0.2693,0.1615,0.0800]
+    bx = [1.9090,1.0495,0.0,-0.3660,-0.3660,-0.6239,-0.6239,-0.3679,-0.2473,-0.1483,-0.0734]
 
     ext_law = [a+(b/Rv) for a,b in zip(ax,bx)]
     ext_dicts = []
@@ -46,15 +46,34 @@ def ext_correction_multiple(Av,Rv=3.2):
         ext_dicts.append(dict_av)
 
     return ext_dicts
+
+def ext_cardelli_smooth(waves,Av,Rv=3.2):
+    # waves in microns
+    opt_idx = np.where(waves < 1.1)
+
+    a = np.zeros(len(waves))
+    b = np.zeros(len(waves))
+
+    a[opt_idx] = 0.574*np.power(1./waves[opt_idx],1.61)
+    b[opt_idx] = -0.527*np.power(1./waves[opt_idx],1.61)
+
+    nir_idx = np.where(waves >= 1.1)
+    y = (1./waves[nir_idx]) - 1.82
+    a[nir_idx] = 1 + 0.17699*y - 0.50447*y**2 - 0.02427*y**3 + 0.72085*y**4 + 0.01979*y**5 - 0.77530*y**6 + 0.32999*y**7
+    b[nir_idx] = 1.41338*y + 2.28305*y**2 + 1.07223*y**3 - 5.38434*y**4 -0.62251*y**5 + 5.30260*y**6 - 2.09002*y**7
+
+    ext = Av*(a+(b/Rv))
+    return ext
+    
     
     
 
 def ext_correction(Av,Rv=3.2,filter = None):
     # all values from Cardelli 1989
-    filters = ['U','B','V','R','I','J','H','K','L']
-    x = [2.78,2.27,1.82,1.43,1.11,0.80,0.63,0.46,0.29]
-    ax = [0.9530,0.9982,1.0000,0.8686,0.6800,0.4008,0.2693,0.1615,0.0800]
-    bx = [1.9090,1.0495,0.0,-0.3660,-0.6239,-0.3679,-0.2473,-0.1483,-0.0734]
+    filters = ['U','B','V','R','Rc','Ic','I','J','H','K','L']
+    x = [2.78,2.27,1.82,1.43,1.43,1.11,0.80,0.63,0.46,0.29]
+    ax = [0.9530,0.9982,1.0000,0.8686,0.8686,0.6800,0.6800,0.4008,0.2693,0.1615,0.0800]
+    bx = [1.9090,1.0495,0.0,-0.3660,-0.3660,-0.6239,-0.6239,-0.3679,-0.2473,-0.1483,-0.0734]
 
     ext_law = [a+(b/Rv) for a,b in zip(ax,bx)]
     A = [float(Av)*ext for ext in ext_law]

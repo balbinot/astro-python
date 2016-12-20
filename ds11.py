@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-#version 04/28/2016
+#version 12/19/2016
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.table import Table,hstack,Column
@@ -9,7 +9,7 @@ import astropy.units as u
 from astropy.visualization.mpl_normalize import ImageNormalize
 from ds9norm import DS9Normalize
 from astropy.visualization import SqrtStretch, LinearStretch
-from photutils.morphology import centroid_com,centroid_1dg,centroid_2dg,cutout_footprint,data_properties
+#from photutils.morphology import centroid_com,centroid_1dg,centroid_2dg,cutout_footprint,data_properties
 from photutils import properties_table, CircularAperture, CircularAnnulus, aperture_photometry,SkyCircularAperture, SkyAperture
 from sys import exit
 import numpy as np
@@ -55,8 +55,10 @@ class ds11(object):
         else:
             self.wcs = self._parse_wcs(self.header)
 
-
-        self.fig,self.ax = self._setup_figure()
+        if wcs == -1:
+            self.wcs = None
+        if self.wcs:
+            self.fig,self.ax = self._setup_figure()
 
     def _parse_wcs(self, header):
         try:
@@ -354,3 +356,25 @@ class ds11(object):
             return ds11(data,head)
         else:
             return data,header
+
+
+
+def push_frames(filelist,regions=None,pan=None):
+    try:
+        d = DS9('astro')
+    except:
+        d = DS9()
+
+    for idx,filename in enumerate(filelist):
+        frame = idx+1
+        d.set('frame %i' % frame)
+        d.set('file %s' % filename)
+        if regions:
+            d.set('regions', '\n'.join(regions))
+        d.set('scale mode 99.5')
+        if pan:
+            d.set('pan to %i %i image' % (int(pan[0]),int(pan[1])))
+
+
+    d.set('frame 1')
+    d.set('lock frame image')

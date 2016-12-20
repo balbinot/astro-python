@@ -19,8 +19,8 @@ def plot_spectrum(spectrum, wave, header, color='k',title=None,xlim=None,ylim=No
   #else:
   #  plt.ylim(min(spectrum), max(spectrum))
     
-  plt.xlabel('$\lambda$ ($\AA$)', fontsize=30)
-  plt.tick_params(axis='x', which='both', labelsize=22)
+  plt.xlabel('$\lambda$ ($\AA$)', fontsize=28)
+  plt.tick_params(axis='x', which='both', labelsize=20)
   plt.tick_params(axis='y', which='both')#, left='off',right='off', labelleft='off')
 
   #plt.legend(frameon=False, loc='upper right', markerscale=None, fontsize=22)
@@ -44,7 +44,7 @@ def get_spectrum(filename):
   wave = np.arange(lambda1, lambda2, header['cdelt1'])
   wave = wave[:len(spectrum)]
  
-  return (header, wave, spectrum)
+  return [header, wave, spectrum]
 
 
 def onkey(event):
@@ -56,6 +56,7 @@ def onkey(event):
 
   global current
   global s
+  global fig
 
   if event.key == 'right':
     fig.clf()
@@ -128,36 +129,46 @@ def smooth(spectrum, kernel=0):
   return spectrum
 
 
-parser = argparse.ArgumentParser(description='An easy way to view a 1D, single extension, spectrum.  Will not work on .ms.fits files.')
-parser.add_argument('input', metavar='input', nargs='+', type=str, help='Filename of single spectrum or list of spectra.')
-parser.add_argument('--s', type=float, default=0, help='Kernel size (in pix) to use for Gaussian smoothing.')
-parser.add_argument('--a',nargs=1,type=int,help='Specify starting fileno')
+def main():
 
-args = parser.parse_args()
-fileslist = args.input
+  parser = argparse.ArgumentParser(description='An easy way to view a 1D, single extension, spectrum.  Will not work on .ms.fits files.')
+  parser.add_argument('input', metavar='input', nargs='+', type=str, help='Filename of single spectrum or list of spectra.')
+  parser.add_argument('--s', type=float, default=0, help='Kernel size (in pix) to use for Gaussian smoothing.')
+  parser.add_argument('--a',nargs=1,type=int,help='Specify starting fileno')
 
-fig, ax = plt.subplots(figsize=(15,7), dpi=72) 
-fig.subplots_adjust(wspace=0.25, left=0.05, right=0.95,
-                    bottom=0.125, top=0.9)
-
-
-cid = fig.canvas.mpl_connect('key_press_event', onkey)  #allows key presses to be read within the plotting window.
-
-if args.a:
-  split = np.array([int(x.split('.')[0]) for x in fileslist])
-  current = np.where(split == args.a[0])
-  current = current[0][0]
-  print fileslist[current]
-  header0, wave0, spectrum0 = get_spectrum(fileslist[current])
-
-else:
-  header0, wave0, spectrum0 = get_spectrum(fileslist[0])
-  current = 0
-
-if args.s != 0:
-  spectrum0 = smooth(spectrum0, kernel=args.s)
-s = args.s
+  global current
+  global fileslist
+  global fig
+  global s
   
+  args = parser.parse_args()
+  fileslist = args.input
 
-plot_spectrum(spectrum0, wave0, header0,title=fileslist[current])
-plt.show()
+  fig, ax = plt.subplots(figsize=(15,7), dpi=72) 
+  fig.subplots_adjust(wspace=0.25, left=0.05, right=0.95,
+                      bottom=0.125, top=0.9)
+
+
+  cid = fig.canvas.mpl_connect('key_press_event', onkey)  #allows key presses to be read within the plotting window.
+
+  if args.a:
+    split = np.array([int(x.split('.')[0]) for x in fileslist])
+    current = np.where(split == args.a[0])
+    current = current[0][0]
+    print fileslist[current]
+    header0, wave0, spectrum0 = get_spectrum(fileslist[current])
+
+  else:
+    header0, wave0, spectrum0 = get_spectrum(fileslist[0])
+    current = 0
+
+  if args.s != 0:
+    spectrum0 = smooth(spectrum0, kernel=args.s)
+  s = args.s
+
+
+  plot_spectrum(spectrum0, wave0, header0,title=fileslist[current])
+  plt.show()
+
+if __name__ == '__main__':
+  main()
