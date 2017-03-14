@@ -10,7 +10,7 @@ from scipy.integrate import quad,simps
 from scipy.interpolate import interp1d
 import astropy.units as u
 import argparse
-from scipy.integrate import simps
+#from scipy.integrate import simps
 
 h = 6.626e-27  # erg*s
 c = 3.0e10     # cm/s
@@ -185,6 +185,8 @@ class SED(object):
 
 
     def observed_lum(self):
+        ###make sure sorted
+        #### try np.trapz() instead!!!
         flux = self.energy / self.waves
         tflux = simps(flux,self.waves)
         tflux *= flux.unit*self.waves.unit

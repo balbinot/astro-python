@@ -35,7 +35,10 @@ def parse_wcs(header):
     return wcs
 
 def pix2wcs(coord,wcs):
-    ncoord = wcs.all_pix2world([coord],1,ra_dec_order=True)
+    try:
+        ncoord = wcs.all_pix2world([coord],1,ra_dec_order=True)
+    except ValueError:
+        ncoord = wcs.all_pix2world([coord],1)
     ncoord = SkyCoord(ncoord,unit=(u.deg,u.deg),frame='icrs') #ra,dec
     ra,dec = ncoord.to_string('hmsdms',sep=':')[0].split()
 
@@ -140,6 +143,7 @@ def qphot(data,coord,rad,skyradin,skyradout,wcs=None,calfctr=None,skycoord=None,
     phot_table['aperture_area_sky'].unit = u.pix**2
     phot_table['aperture_area_src'].unit = u.pix**2
 
+    
     if error is not None:
         src_err = phot_table['aperture_sum_err_src']
         sky_err = phot_table['aperture_sum_err_sky']
@@ -148,6 +152,11 @@ def qphot(data,coord,rad,skyradin,skyradout,wcs=None,calfctr=None,skycoord=None,
         color_err = 0. # 10 percent photoerr
         color_var = color_err * phot_table['residual_aperture_sum']
         phot_table['residual_aperture_err'] = np.sqrt(src_var**2+sky_var**2+color_var**2)
+
+    else:
+        color_err = 0.07 # 7 percent photoerr
+        color_var = color_err * sky_sum
+        phot_table.add_column(Column([color_var for x in phot_table],name='residual_aperture_err'))
     
     phot_table.remove_columns(['xcenter_src','ycenter_src','xcenter_sky','ycenter_sky'])
     if 'center_input' in phot_table.colnames:
@@ -189,9 +198,9 @@ def qphot(data,coord,rad,skyradin,skyradout,wcs=None,calfctr=None,skycoord=None,
         flux = phot_table['residual_aperture_sum']/calfctr
         phot_table.add_column(Column(flux,name='ap_flux',unit=unit))
 
-        if error is not None:
-            fluxerr = phot_table['residual_aperture_err']/calfctr
-            phot_table.add_column(Column(fluxerr,name='ap_err',unit=unit))
+        #if error is not None:
+        fluxerr = phot_table['residual_aperture_err']/calfctr
+        phot_table.add_column(Column(fluxerr,name='ap_err',unit=unit))
 
     if filter:
         phot_table['filter'] = str(filter)
